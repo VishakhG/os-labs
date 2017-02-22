@@ -2,4 +2,5 @@ run.sh
 test
 labsamples
 lab1_samples.tar
-*.pdf
+notes.org
+lab1-linker-spring2017.pdf
