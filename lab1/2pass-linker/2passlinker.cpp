@@ -16,6 +16,15 @@
 ********************************************************************************************************/
 
 
+
+
+
+
+/*******************************************************************************************************
+                                   First Pass definitions
+********************************************************************************************************/
+
+
 // Arrays to hold metadata and symbols 
 std::vector<std::string> symbols; // defined symbols 
 std::vector<int> symbolAddrGlobal; // Absolute Adresses corresponding to defined symbols
@@ -50,12 +59,9 @@ void parseerror(int errcode, int linenum, int offset){
 
 /*
   Error handling and parsing code.
-
   Checks various pathological cases and prints a warning.
-
   Stops parsing for certain syntax errors.
-
- */
+*/
 
 // Check everything related to defcount
 int check_syntax_defCount(char *defCount, int line, int offset){
@@ -97,6 +103,7 @@ int check_syntax_useCount(char *useCount, int line, int offset){
 
 // Check everything related to the codecount
 int  check_syntax_codeCount(char *codeCount, int line, int offset){
+
   int exit = 1;
   
   if(isalpha(codeCount[0])){
@@ -153,7 +160,6 @@ bool is_not_alnum(char c){
     return true;
 }
 
-
 //Final checks to do after pass 1 exits with a parseerror
 int final_check(int defCounter, int defCount, int useCounter, int useCount, int codeCounter,int codeCount, int line, int offset){
 
@@ -187,7 +193,6 @@ void zeroLargeSymAddress(std::string sym, int  address, int moduleNum){
       int pos = i - symbols.begin();
       if( *i == sym and pos == moduleNum - 1)
 	symbolAddrGlobal[pos] -= address;
-		 
     }
 }
 
@@ -448,18 +453,6 @@ int FirstPass(const char* path){
 
   printf("\n");
 
- 
-/*******************************************************************************************************
-                                       Second Pass
-
-Preliminary error handling and getting the absolute addresses for the modules and the symbols. 
-We store the symbols in a symbol vector  and store the addresses in an address vector.
-
-
-
-********************************************************************************************************/
-
-
  std::vector<std::string> encounteredSymbols;
  
  if(!pass1Exit){
@@ -475,6 +468,18 @@ We store the symbols in a symbol vector  and store the addresses in an address v
  fclose(file);
  return pass1Exit;
 }
+
+
+/*******************************************************************************************************
+                                   Second Pass definitions
+********************************************************************************************************/
+
+std::vector<std::string> symbol_checklist;
+std::vector<int> symbol_checklist_idx;
+std::vector<std::string> uselist;
+std::vector<std::string> uselist_checklist;
+std::vector<std::string>cUseList; // Current uselist for external addresses
+
 
 //Error parsing for second pass
 void errormessage(int code){
@@ -492,13 +497,6 @@ void errormessage(int code){
 void errormessage(int code, const char* undefinedsym){
   printf("Error: %s is not defined; zero used", undefinedsym);
 }
-
-std::vector<std::string> symbol_checklist;
-std::vector<int> symbol_checklist_idx;
-std::vector<std::string> uselist;
-std::vector<std::string> uselist_checklist;
-
-std::vector<std::string>cUseList; // Current uselist for external addresses
 
 
 int returnSymbolLocation(const char* code, int line, int offset){
@@ -522,7 +520,6 @@ void handle_I(int instr_int, int outCount, const char* instr){
   printf("%03i: %04i \n", outCount, instr_int);
 
 }
-
 
 
 void handle_A(int outCount, const char* instr, int operand, int opcode){
@@ -583,7 +580,6 @@ void handle_R(const char* code, const char* instr, int moduleStart, int moduleLe
     printf("%03i: %d  \n", outCount, (instr_int + moduleStart));
 
 }
-
 
 
 void handle_instruction(char* code, const char* instr, int moduleStart, int moduleLen, int line, int offset, int outCount){
@@ -670,7 +666,14 @@ void uselist_not_used(int moduleNum){
    }
 }
 
-//  Pass 2 actual loop 
+
+/*******************************************************************************************************
+                                       Second Pass
+
+Resolve all addresses and print the memory map.
+
+
+********************************************************************************************************/
 
 void SecondPass(const char* path)
 {
@@ -773,8 +776,6 @@ void SecondPass(const char* path)
 		codeCounterAbs ++;
 		codeCounter ++;
 	      }
-
-
 	    }
 
 	    //Done with module
@@ -805,9 +806,12 @@ void SecondPass(const char* path)
   fclose(file);
 }
 
+
 /*******************************************************************************************************
                                         MAIN
 ********************************************************************************************************/
+
+
 int main(int argc, char *path[]){
   int badExit = FirstPass(path[1]);
 
