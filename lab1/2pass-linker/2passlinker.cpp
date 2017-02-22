@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <cstdio>
+#include <algorithm> 
 
 // Arrays to hold metadata
 std::vector<int> dcarr;// Definition codes for debugging
