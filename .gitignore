@@ -11,3 +11,4 @@ rout
 *.tar.Z
 *.DS_Store
 *.o
+*.#*
