@@ -9,4 +9,4 @@ rout
 *.pdf
 *.tar
 *.tar.Z
-
+*.DS_Store
