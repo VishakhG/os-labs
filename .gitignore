@@ -10,3 +10,4 @@ rout
 *.tar
 *.tar.Z
 *.DS_Store
+*.o
