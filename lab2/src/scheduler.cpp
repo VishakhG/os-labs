@@ -48,7 +48,7 @@ public:
   int get_io_burst(){
     return io_burst;
   }
-
+  // Set one after another depending on what hasn't been set
   void push_val(int val){
     if(start_time == false){
       start_time = val;
@@ -104,6 +104,7 @@ public:
     }
   }
 
+  //Just check if the reading in of process
   void print_processes(){
     for(std::vector<Process>::iterator it = proc_list.begin(); it != proc_list.end(); ++it) {
       printf("%i is the arrival time \n", (*it).get_arrival_time());
@@ -114,12 +115,59 @@ public:
   }
 };
 
+class Simulation{
+private:
+  std::vector<int> rand_vals;
+
+public:
+
+  //Load the random numbers
+  void read_random_numbers(char const *rfile_path){
+    FILE * file;
+    char tokenseq [100];
+    file = fopen(rfile_path, "r");
+
+    if(file == NULL){
+      perror("File does not exist");
+    }
+
+    else{
+      //Whole file
+      while(fgets(tokenseq, sizeof(tokenseq), file)){
+	char *tok;
+	tok = strtok (tokenseq," \t\n");
+	//Single line
+	while(tok != NULL){
+	  rand_vals.push_back((int)atoi(tok));
+	  tok = strtok (NULL," \t\n");
+	}
+
+      }
+    }
+      
+  }
+  //Check that the random numbers are ok
+  void print_random_numbers(int max_display){
+    printf("These are the first %i random numbers\n", max_display);
+    for(std::vector<int>::iterator it = rand_vals.begin(); it - rand_vals.begin()< 10; ++it) {
+      printf("%i\n", *it);
+    }
+  }
+    
+  
+};
+
 int main(void) {
   Process proc;
   proc.set_io_burst(10);
 
   ProcessList pr_list;
-  pr_list.read_processes("/Users/Vishakh/devel/os-labs/lab2/assignment/input1");
+  pr_list.read_processes("/Users/Vishakh/devel/os-labs/lab2/assignment/input2");
   pr_list.print_processes();
 
+  Simulation sim ;
+
+  sim.read_random_numbers("/Users/Vishakh/devel/os-labs/lab2/assignment/rfile");
+  sim.print_random_numbers(10);
+   
 }
