@@ -1,6 +1,8 @@
 #include <iostream>
- 
+#include <vector>
+
 using namespace std;
+
 class Process{
 private:
   int start_time;
@@ -46,10 +48,32 @@ public:
 
 };
 
+class ProcessList{
+  
+ private:
+  std::vector<Process> proc_list;
 
-		
+ public:
+  void set_process(Process proc){
+    proc_list.push_back(proc);
+  }
+
+  int get_process(){
+    Process proc = proc_list.at(0);
+    int io_time = proc.get_io_burst();
+    return io_time;
+  }
+
+};
+
+
+
+
 int main(void) {
   Process proc;
   proc.set_io_burst(10);
-  printf("%i", proc.get_io_burst());
+
+  ProcessList pr_list;
+  pr_list.set_process(proc);
+  printf("%i", pr_list.get_process());
 }
