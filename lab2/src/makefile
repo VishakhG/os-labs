@@ -1,4 +1,4 @@
-linker:2passlinker.cpp
+linker:scheduler.cpp
 	g++ -std=c++11  scheduler.cpp -o scheduler.o
 clean:
-	rm -f linker *~
+	rm -f scheduler.o *~
