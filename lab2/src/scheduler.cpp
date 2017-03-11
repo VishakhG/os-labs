@@ -73,7 +73,7 @@ public:
 
 class ProcessList{
 private:
-  std::vector<Process> proc_list;
+  std::vector<Process *> proc_list;
 
 public:
   void read_processes(char const *input_path){
@@ -89,14 +89,14 @@ public:
     else{
       //Whole file
       while(fgets(tokenseq, sizeof(tokenseq), file)){
-	Process proc_i;	
+	Process *proc_i = new Process;	
 	char *tok;
 	tok = strtok (tokenseq," \t\n");
-	proc_i.push_val((int)atoi(tok));
+	proc_i->push_val((int)atoi(tok));
 	//Single line
 	while(tok != NULL){
 	  //printf("%s \n", tok);
-	  proc_i.push_val((int)atoi(tok));
+	  proc_i->push_val((int)atoi(tok));
 	  tok = strtok (NULL," \t\n");
 	}
 	proc_list.push_back(proc_i);
@@ -106,21 +106,54 @@ public:
 
   //Just check if the reading in of process
   void print_processes(){
-    for(std::vector<Process>::iterator it = proc_list.begin(); it != proc_list.end(); ++it) {
-      printf("%i is the arrival time \n", (*it).get_arrival_time());
-      printf("%i is the total CPU time \n", (*it).get_total_time());
-      printf("%i is the CPU burst time \n", (*it).get_cpu_burst());
-      printf("%i is the IO burst time \n", (*it).get_io_burst());
+    for(std::vector<Process*>::iterator it = proc_list.begin(); it != proc_list.end(); ++it) {
+      printf("%i is the arrival time \n", (*it)->get_arrival_time());
+      printf("%i is the total CPU time \n", (*it)->get_total_time());
+      printf("%i is the CPU burst time \n", (*it)->get_cpu_burst());
+      printf("%i is the IO burst time \n", (*it)->get_io_burst());
     }
   }
+};
+
+class Event{
+private:
+  int state;
+  int prev_state;
+
+public:
+  void transition(int new_state){
+    prev_state = state;
+    state = new_state;
+  }
+  int return_state(){
+    return state;
+  }
+};
+
+class EventQueue{
+private:
+  std::vector<Event*> queue;
+
+public:
+  void insert(Event* event){
+    queue.push_back(event);
+  
+}
+
+  Event* pop(){
+    Event* last_event = queue.back();
+    queue.pop_back();
+    return last_event;
+  }
+
 };
 
 class Simulation{
 private:
   std::vector<int> rand_vals;
+  int rand_counter = 0;
 
 public:
-
   //Load the random numbers
   void read_random_numbers(char const *rfile_path){
     FILE * file;
@@ -153,7 +186,10 @@ public:
       printf("%i\n", *it);
     }
   }
-    
+
+  int random_burst(int burst){
+    return 1 + (rand_vals[rand_counter ++] % burst);
+  }
   
 };
 
@@ -169,5 +205,11 @@ int main(void) {
 
   sim.read_random_numbers("/Users/Vishakh/devel/os-labs/lab2/assignment/rfile");
   sim.print_random_numbers(10);
-   
+
+  EventQueue eq;
+  Event * event = new Event;
+  event->transition(1);
+  eq.insert(event);
+  printf("the event is currently %i", (eq.pop()) -> return_state());
+  
 }
