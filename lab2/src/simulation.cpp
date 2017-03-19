@@ -3,8 +3,9 @@
 #include <iostream>
 #include <cstdio>
 #include <stdio.h>
-#include <scheduler.h>
-#include <des.h>
+#include "scheduler.h"
+#include "des.h"
+
 
 
 /*
@@ -60,11 +61,11 @@ public:
 	Process *proc_i = new Process;	
 	char *tok;
 	tok = strtok (tokenseq," \t\n");
-	proc_i->push_val((int)atoi(tok));
+	proc_i->set_incrementally((int)atoi(tok));
 	//Single line
 	while(tok != NULL){
 	  //printf("%s \n", tok);
-	  proc_i->push_val((int)atoi(tok));
+	  proc_i->set_incrementally((int)atoi(tok));
 	  tok = strtok (NULL," \t\n");
 	}
 	sched->add_process(proc_i);
@@ -73,7 +74,7 @@ public:
   }
 
   int random_burst(int burst){
-    return 1 + (rand_vals[rand_counter ++] % burst);
+    return 1 + (rand_vals[RAND_COUNTER ++] % burst);
   }
 
 };
@@ -88,7 +89,7 @@ and requests a process from the scheduler.
 
 class Simulation{
 private:
-  Scheduler scheduler;
+  FIFO fifo;
   std::vector<Event*> queue;
 
   int CURRENT_TIME;
@@ -97,7 +98,7 @@ private:
 public:
   void setup_simulation(){
     ;//Need to populate the event queue intially
-  };
+  }
 
   void run_simulation(){
     ;// Need to run simulation
@@ -116,6 +117,5 @@ int main(void){
   sim.setup_simulation();
   sim.run_simulation();
   sim.print_simulation_details();
-  
   return 0;
 };

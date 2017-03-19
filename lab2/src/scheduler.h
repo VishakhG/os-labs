@@ -43,21 +43,18 @@ protected:
 
 public:
   //A specific process is free to define these as they wish
-  
-  int get_quantum(){
-    return quantum;
-  }
-  
-  virtual void add_process(Process * proc);
-  virtual Process* get_process();
+ 
+  virtual void add_process(Process * proc)=0;
+  virtual Process* get_process()=0;
 
-  
 };
 
 class FIFO: public Scheduler{
 public:
   //Will override these virtual functions
-  void add_process;
-  Process * get_process;
-  
+  void add_process(Process * proc);
+  Process * get_process();
 };
+
+#endif
+

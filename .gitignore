@@ -12,3 +12,4 @@ rout
 *.DS_Store
 *.o
 *.#*
+*.out

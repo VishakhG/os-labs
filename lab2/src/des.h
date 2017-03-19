@@ -24,7 +24,8 @@ class Event{
   //Getters
   int  get_state();
   int  get_transition();
-  int get_time_stamp();
+  int  get_time_stamp();
   
 };
+#endif
 

@@ -3,46 +3,36 @@
 #include <iostream>
 #include <cstdio>
 #include <stdio.h>
-#include <scheduler.h>
+#include "scheduler.h"
+#include "des.h"
 
-using namespace std;
+void Event::set_state(int s){
+  state = s;
+}
 
-class Event{
-private:
-  int state;
-  int time_stamp;
-  int transition;
+void Event::set_time_stamp(int ts){
+  time_stamp = ts;
+}
 
-  Process * e_proc;
+void Event::set_transition(int t){
+  transition = t;
+}
 
-public:
-  void set_state(int s){
-    state = c_state;
-  }
+void Event::set_event_process(Process * proc){
+  e_proc = proc;
+}
 
-  void set_time_stamp(int ts){
-    time_stamp = ts;
-  }
+int Event::get_state(){
+  return state;
+}
 
-  void set_transition(int t){
-    transition = t;
-  }
+int Event::get_transition(){
+  return transition;
+}
 
-  void set_event_process(Process * proc){
-    e_proc = proc;
-  }
+int Event::get_time_stamp(){
+  return time_stamp;
+}
 
-  int get_state(){
-    return state;
-  }
-
-  int get_transiton(){
-    return transition;
-  }
-
-  int get_time_stamp(){
-    return time_stamp;
-  }
-};
 
 
