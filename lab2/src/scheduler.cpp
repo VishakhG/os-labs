@@ -44,6 +44,22 @@ int Process::get_cpu_burst(){
 int Process::get_io_burst(){
   return io_burst;
 }
+
+void Process::add_time_running(int r){
+  time_running += r;
+}
+
+void Process::add_time_blocked(int b){
+  time_blocked += b;
+}
+
+int Process::get_time_blocked(){
+  return time_blocked;
+}
+
+int Process::get_time_running(){
+  return time_running;
+}
 // Set one after another depending on what hasn't been set
 void Process::set_incrementally(int val){
   if(start_time == false){
@@ -65,7 +81,9 @@ void Process::set_incrementally(int val){
   }
 }
 
-
+bool Scheduler::not_empty(){
+  return ! runqueue.empty();
+}
 
 /*
 The FIFO scheduler
@@ -76,9 +94,15 @@ void FIFO::add_process(Process * proc){
   }
   
 Process * FIFO::get_process(){
-    //Just pop from the back
-    return runqueue.back();
-  }
+  //Just pop from the back
+  Process * proc_i = runqueue.back();
+  runqueue.pop_back();
+  return proc_i;
+}
+
+int  FIFO::get_quantum(){
+  return quantum;
+}
   
 
 

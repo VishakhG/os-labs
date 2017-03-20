@@ -13,6 +13,10 @@ private:
   int io_burst;
   int priority;
 
+  int time_running;
+  int time_blocked;
+
+
 public:
   //Setters
   void set_arrival_time(int AT);
@@ -20,13 +24,21 @@ public:
   void set_cpu_burst(int CB);
   void set_io_burst(int IO);
 
+  void add_time_running(int w);
+  void add_time_blocked(int b);
+
   //Getters
   int get_arrival_time();
   int get_total_time();
   int get_cpu_burst();
   int get_io_burst();
-
+  
+  int get_time_blocked();
+  int get_time_running();
+  
   void set_incrementally(int val);
+
+
   
 };
 
@@ -46,7 +58,8 @@ public:
  
   virtual void add_process(Process * proc)=0;
   virtual Process* get_process()=0;
-
+  bool not_empty();
+  int get_quantum();
 };
 
 class FIFO: public Scheduler{
@@ -54,6 +67,7 @@ public:
   //Will override these virtual functions
   void add_process(Process * proc);
   Process * get_process();
+  int get_quantum();
 };
 
 #endif

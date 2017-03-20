@@ -29,3 +29,14 @@ class Event{
 };
 #endif
 
+class DES{
+private:
+  std::vector<Event*> e_queue;
+
+  
+  public:
+  Event * get_event();
+  Event * peek_event();
+  void insert_event(Event * e);
+  bool not_empty();
+};

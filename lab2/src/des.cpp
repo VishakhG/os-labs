@@ -35,4 +35,26 @@ int Event::get_time_stamp(){
 }
 
 
+Event *  DES::get_event(){
+  Event * r_event = e_queue.back();
+  e_queue.pop_back();
+  return r_event;
+}
 
+
+void DES::insert_event(Event * e){
+  e_queue.push_back(e);
+}
+
+bool DES::not_empty(){
+  if((int)(e_queue.size()) > 0){
+    return true;
+  }
+  else{
+    return false;
+  }
+};
+
+Event * DES::peek_event(){
+  return e_queue.back();
+}
