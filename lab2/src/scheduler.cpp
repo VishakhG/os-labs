@@ -19,15 +19,45 @@ void Process::set_total_time(int TT){
   total_time = TT;
 }
 
+void Process::set_finishing_time(int FT){
+  finishing_time = FT;
+}
 void Process::set_cpu_burst(int CB){
   cpu_burst = CB;
 }
 
+void Process::add_cpu_waiting(int CPU){
+  cpu_waiting += CPU;
+}
+
+void Process::set_time_prev_state(int TPS){
+  time_in_previous_state = TPS;
+}
+
+void Process::set_priority(int P){
+  priority = P;
+}
+
+int Process::get_time_prev_state(){
+  return time_in_previous_state;
+}  
+
 void Process::set_io_burst(int IO){
   io_burst = IO;
 }
-  
+
+void Process::set_pid(int p){
+  pid = p;
+}
 // Getters
+
+int Process:: get_finishing_time(){
+  return finishing_time;
+}
+
+int Process::get_cpu_waiting(){
+  return cpu_waiting;
+}
 
 int Process::get_arrival_time(){
   return arrival_time;
@@ -57,26 +87,35 @@ int Process::get_time_blocked(){
   return time_blocked;
 }
 
+int Process::get_pid(){
+  return pid;
+}
 int Process::get_time_running(){
   return time_running;
 }
+
+int Process::get_priority(){
+  return priority;
+}
 // Set one after another depending on what hasn't been set
 void Process::set_incrementally(int val){
-  if(start_time == false){
-    start_time = val;
-  }
-  else if (arrival_time == false){
+  if (arrival_time == -1){
+    printf("\nat%d",val);
     arrival_time = val;
+    last_event_time = val;
   }
-  else if (total_time == false){
+  else if (total_time == -1){
+    printf("\ntt%d",val);
     total_time = val;
   }
 
-  else if (cpu_burst == false){
+  else if (cpu_burst == -1){
+    printf("\ncb%d",val);
     cpu_burst = val;
   }
 
-  else if (io_burst == false){
+  else if (io_burst == -1){
+    printf("\nio%d",val);
     io_burst = val;
   }
 }
@@ -89,9 +128,8 @@ bool Scheduler::not_empty(){
 The FIFO scheduler
 */
 void FIFO::add_process(Process * proc){
-    //Insert at end of queue
-     runqueue.push_back(proc);
-  }
+  runqueue.insert(runqueue.begin(), proc);
+}
   
 Process * FIFO::get_process(){
   //Just pop from the back

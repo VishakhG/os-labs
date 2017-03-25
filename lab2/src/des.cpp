@@ -22,6 +22,10 @@ void Event::set_event_process(Process * proc){
   e_proc = proc;
 }
 
+void Event::set_previous_state(int s){
+  previous_state = s;
+}
+
 int Event::get_state(){
   return state;
 }
@@ -30,10 +34,16 @@ int Event::get_transition(){
   return transition;
 }
 
+int Event::get_previous_state(){
+  return previous_state;
+}
 int Event::get_time_stamp(){
   return time_stamp;
 }
 
+Process * Event::get_process(){
+  return e_proc;
+}
 
 Event *  DES::get_event(){
   Event * r_event = e_queue.back();
@@ -43,18 +53,53 @@ Event *  DES::get_event(){
 
 
 void DES::insert_event(Event * e){
-  e_queue.push_back(e);
-}
+
+  std::vector<Event *>:: iterator position = e_queue.end();
+
+  if(e_queue.empty()){
+    e_queue.push_back(e);
+  }
+
+  else{
+      
+    for(std::vector<Event *>::iterator it = e_queue.begin(); it != e_queue.end(); ++it) {
+      if (!goes_after(e, *it)){
+	position = it;
+	break;
+      }
+    }
+    
+   // printf("inserting id %d at %d with ts %d ", e -> get_process() -> get_pid(),(int)( position - e_queue.begin()), e-> get_time_stamp());
+    
+    e_queue.insert(position, e);
+    
+
+    }
+  }
 
 bool DES::not_empty(){
-  if((int)(e_queue.size()) > 0){
-    return true;
-  }
-  else{
-    return false;
-  }
+  return !e_queue.empty();
 };
 
 Event * DES::peek_event(){
   return e_queue.back();
+}
+
+//Compare whether an event(e1) goes after another (e2)
+//Return true if it does, false if it doesn't
+bool DES::goes_after(Event * e1, Event * e2){
+  int ts_1 = e1 -> get_time_stamp();
+  int ts_2 = e2 -> get_time_stamp();
+
+  //Obviously check if the timestamp is less
+  if (ts_1 < ts_2){
+    return true;
+  }
+  else if (ts_1 > ts_2){
+    return false;
+  }
+  
+  else{
+    return false;
+  }
 }
