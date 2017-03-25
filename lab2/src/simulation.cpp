@@ -148,7 +148,7 @@ public:
     while(des.not_empty()){
       Event* evt = des.get_event();
       CURRENT_TIME = evt -> get_time_stamp();
-      int get_next_event_time(){ pid = (evt -> get_process()) -> get_pid();
+      int pid = (evt -> get_process()) -> get_pid();
       int last_trans_time = evt -> get_process() -> last_event_time;
       
       int TPI = CURRENT_TIME -  last_trans_time;
