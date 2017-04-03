@@ -11,9 +11,9 @@ private:
   int cpu_burst = -1;
   int io_burst = -1;
   int priority = -1;
-  int pid;
-  int finishing_time;
-  int cpu_waiting;
+  int pid = 0;
+  int finishing_time = 0;
+  int cpu_waiting = 0;
   
   int time_running = 0;
   int time_blocked = 0;
@@ -22,7 +22,11 @@ private:
 
 
 public:
-  int last_event_time;
+  int last_event_time = 0;
+  int dynamic_priority = 0;
+  int cb_remaining = 0;
+  int dynamic_reset = false;
+
   //Setters
   void set_arrival_time(int AT);
   void set_total_time(int TT);
@@ -63,6 +67,7 @@ class Scheduler{
 protected:
   //Every schedule has a place to keep processes
   std::vector<Process *> runqueue;
+  std::vector<Process *> expiredqueue;
   int quantum;
 
 public:
@@ -70,7 +75,7 @@ public:
  
   virtual void add_process(Process * proc)=0;
   virtual Process* get_process()=0;
-  bool not_empty();
+  bool empty();
   int get_quantum();
   void print_info();
 };
@@ -80,8 +85,37 @@ public:
   //Will override these virtual functions
   void add_process(Process * proc);
   Process * get_process();
+
+};
+
+class LCFS: public Scheduler{
+  Process * get_process();
+  void add_process(Process * proc);
   int get_quantum();
 };
+
+class RR: public FIFO{
+
+};
+
+class PRIO: public Scheduler{
+private:
+  public:
+  void add_expired(Process * proc);
+  void add_process(Process * proc);
+  void add_active(Process * proc);
+  bool not_empty();
+  Process * get_process();
+  bool goes_after(Process * p1, Process * p2);
+};
+
+class SJF : public Scheduler{
+  public:
+  void add_process(Process *proc);
+  Process * get_process();
+  bool goes_after(Process* p1, Process * p2);
+};
+
 
 #endif
 

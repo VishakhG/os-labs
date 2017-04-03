@@ -6,6 +6,12 @@
 #include "scheduler.h"
 #include "des.h"
 #include <algorithm> 
+#include <fstream>
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <getopt.h>
 
 /************************************************/
 /*
@@ -92,6 +98,8 @@ public:
 
   //Return a random burst 
   int random_burst(int burst){
+    if (RAND_COUNTER > rand_vals.size())
+      RAND_COUNTER = 1;
     return (1 + (rand_vals.at(RAND_COUNTER++) % burst));
   }
 
@@ -112,10 +120,11 @@ private:
   //Put process here when its done so we can keep track of it
   std::vector<Process *> done_list;
   //TODO 
-  FIFO fifo;
+  Scheduler* fifo;
   DES des;
   SimUtils utils;
-
+  int quantum; 
+  const char* sched_type;
   int CURRENT_TIME = 1;
   Process * CURRENT_PROCESS = NULL;
   const char * process_path;
@@ -123,19 +132,37 @@ private:
   bool CALL_SCHEDULER = false;
   int TOTAL_CPU_TIME = 0;
   int TOTAL_IO_TIME = 0;
-  
-
+  int LAST_BLOCKED = 0;
+  int VERBOSE = 0;
 
 public:
-  Simulation(const char * proc_path, const char *rand_path){
+  Simulation(const char * proc_path, const char *rand_path,  const char* st, int qtm, int v){
     process_path = proc_path;
     random_path = rand_path;
+    sched_type = st;
+    quantum = qtm;
+    VERBOSE = v;
   }
   
 
   void setup_simulation(){
-    utils.read_random_numbers(random_path);
-    utils.populate_queues(&fifo, &des, process_path);
+    if(*sched_type == 'F') {
+      fifo = new FIFO;
+    }
+    else if (*sched_type == 'L'){
+      fifo = new LCFS;
+    }
+    else if (*sched_type == 'R'){
+      fifo = new FIFO;
+    }
+    else if (*sched_type == 'S'){
+      fifo = new SJF;
+    }
+    else{
+      fifo = new PRIO;
+    }
+   utils.read_random_numbers(random_path);
+    utils.populate_queues(fifo, &des, process_path);
   }
 
   
@@ -146,17 +173,22 @@ public:
 
   void run_simulation(){
     while(des.not_empty()){
+
       Event* evt = des.get_event();
+
       CURRENT_TIME = evt -> get_time_stamp();
-      int pid = (evt -> get_process()) -> get_pid();
-      int last_trans_time = evt -> get_process() -> last_event_time;
+      Process* proc_e = evt -> get_process();
       
-      int TPI = CURRENT_TIME -  last_trans_time;
+      int pid = proc_e -> get_pid();
+      int last_trans_time = proc_e -> last_event_time;
+      
+      int TPI = CURRENT_TIME - last_trans_time;
+
       if(evt -> get_state() == 1){
-	evt -> get_process() -> add_cpu_waiting(TPI);
+        proc_e -> add_cpu_waiting(TPI);
       }
-      
-      evt -> get_process() -> last_event_time = CURRENT_TIME;
+
+      proc_e -> last_event_time = CURRENT_TIME;
 
       switch(evt -> get_transition()){
 
@@ -167,8 +199,8 @@ public:
 
       case 2:{
 	print_transition(evt, 2);
-
-	  handle_trans_to_run(evt);
+	
+	handle_trans_to_run(evt);
  
       }break;
 
@@ -182,8 +214,10 @@ public:
 
 	else{
 	  CURRENT_PROCESS = NULL;
-	  printf("\n process %d is done!", (evt -> get_process()) -> get_pid());
+	  CALL_SCHEDULER = true;
 	  (evt->get_process()) -> set_finishing_time(CURRENT_TIME);
+	  if(VERBOSE == 1) 
+	    printf("\nprocess %d DONE", evt->get_process()->get_pid());
 	  done_list.push_back(evt -> get_process());
 	}
 
@@ -210,8 +244,8 @@ public:
 	CALL_SCHEDULER = false;
        
 	if (CURRENT_PROCESS == NULL){
-	    if (fifo.not_empty()){
-	      CURRENT_PROCESS = fifo.get_process();
+	    if (! fifo -> empty()){
+	      CURRENT_PROCESS = fifo -> get_process();
 	    }
 
 	    else{
@@ -265,18 +299,24 @@ public:
       trans_from = "BLOCKED";
       break;
     }
-    std::string f_string = "\n Process %d transitioning from " +  trans_from + " to " + 
-	trans_to + " at time %d ";
     
-    printf(f_string.c_str(), pid, CURRENT_TIME);
+    std::string f_string = "\n %d %d "  +  trans_from + " -> " +   trans_to + " prio = %d" ;
 
+    if(VERBOSE == 1){
+      printf(f_string.c_str(), CURRENT_TIME,pid,  proc_i->dynamic_priority);
+    }
 }
   
 
   //Must be coming from blocked or preemption
   //Must add to the run queue
   void handle_trans_to_ready(Event* c_event){
-    fifo.add_process(c_event -> get_process());
+    Process * proc_i = c_event -> get_process();
+
+      if(c_event -> get_state() == 3)
+	proc_i -> dynamic_priority = proc_i -> get_priority() - 1;
+
+    fifo -> add_process(proc_i);
     CALL_SCHEDULER = true;
   }
 
@@ -285,24 +325,40 @@ public:
   void handle_trans_to_run(Event* c_event){
     Event * e_i = new Event;
     Process * proc_i = c_event -> get_process();
-     int random_burst_i = utils.random_burst(proc_i -> get_cpu_burst());
-     int cpu_burst_i = std::min(random_burst_i, (proc_i -> get_total_time()) - (proc_i -> get_time_running()));
-     printf("CPU_Burst %d", cpu_burst_i);
-     int quantum_i = fifo.get_quantum();
-     int trans;
+    int cpu_burst_i;
      
+     if (proc_i -> cb_remaining == 0){
+       int random_burst_i = utils.random_burst(proc_i -> get_cpu_burst());
+       cpu_burst_i = std::min(random_burst_i, (proc_i -> get_total_time()) - (proc_i -> get_time_running()));
+     }
+
+     else{
+       cpu_burst_i = std::min(proc_i -> cb_remaining, (proc_i -> get_total_time()) - (proc_i -> get_time_running()));
+     }
+
+     if(VERBOSE == 1){
+       printf(" CB %d rem = %d", cpu_burst_i, proc_i -> get_total_time() - (proc_i -> get_time_running()));
+     }
+     int quantum_i = quantum;
+     int trans;
+
+     //Preempt
      if(cpu_burst_i > quantum_i){
+       proc_i -> cb_remaining = std::max(cpu_burst_i - quantum_i, 0);
        proc_i -> add_time_running(quantum_i);
        e_i -> set_time_stamp(CURRENT_TIME + quantum_i);
        TOTAL_CPU_TIME += quantum_i;
+
        trans = 4;
+       
        }
      
      else{
-	proc_i -> add_time_running(cpu_burst_i);
-	e_i -> set_time_stamp(CURRENT_TIME + cpu_burst_i);
-	TOTAL_CPU_TIME += cpu_burst_i;
-	trans = 3;
+       proc_i -> cb_remaining = std::max(proc_i -> cb_remaining - cpu_burst_i, 0);
+       proc_i -> add_time_running(cpu_burst_i);
+       e_i -> set_time_stamp(CURRENT_TIME + cpu_burst_i);
+       TOTAL_CPU_TIME += cpu_burst_i;
+       trans = 3;
       }
 
      e_i -> set_transition(trans);
@@ -321,23 +377,94 @@ public:
     Event* e_i = new Event;
     Process * proc_i = c_event -> get_process();
     int io_burst_i = utils.random_burst((proc_i -> get_io_burst()));
+    //printf("io burst %d", io_burst_i);
     proc_i -> add_time_blocked(io_burst_i);
-    e_i -> set_time_stamp(CURRENT_TIME + io_burst_i);
+    // proc_i -> dynamic_priority = proc_i -> get_priority() -1;
+
+    int e_time = CURRENT_TIME + io_burst_i;
+    e_i -> set_time_stamp(e_time);
     e_i -> set_event_process(proc_i);
     e_i -> set_transition(1);
     e_i -> set_state(3);
+    
+    if(e_time > LAST_BLOCKED){
+
+      if(LAST_BLOCKED > 0){
+	TOTAL_IO_TIME += (e_time - std::max(CURRENT_TIME, LAST_BLOCKED));
+      }
+
+      else{
+	TOTAL_IO_TIME += io_burst_i;
+      }
+
+      LAST_BLOCKED = e_time;
+    }
+    
+    if(VERBOSE == 1)
+      printf(" IB = %d", io_burst_i);
+
     des.insert_event(e_i);
-    TOTAL_IO_TIME += io_burst_i;
     CALL_SCHEDULER = true;
   }
   
   //Add to run_queue;
   void handle_trans_to_preempt(Event * c_event){
-    fifo.add_process(c_event -> get_process());
+    CURRENT_PROCESS = NULL;
+    Process * proc_i = c_event -> get_process();
+    if ((proc_i -> dynamic_priority) > 0){
+      proc_i -> dynamic_priority -= 1;
+    }
+
+    else{
+      proc_i -> dynamic_priority = proc_i -> get_priority() - 1;
+      proc_i -> dynamic_reset = true;
+    }
+
+    
+    fifo -> add_process(proc_i);
     CALL_SCHEDULER = true;
+  }
+
+  void sort_by_id(){
+    std::vector<Process *> temp  (done_list.size());
+
+    for(std::vector<Process *>::iterator it = done_list.begin(); it != done_list.end(); ++it) {
+     int  position = (*it) -> get_pid();
+     temp[position] = *it;
+    }
+    
+    done_list = temp;
   }
   
   void print_simulation_details(){
+    sort_by_id();
+    int turnaround_count = 0;
+    int cpu_waiting_count = 0;
+    std::string sched_label; 
+    bool print_quantum = false;
+    if (*sched_type == 'F'){
+      sched_label = "FCFS";
+    }
+    else if (*sched_type == 'L'){
+      sched_label = "LCFS";
+    }
+    else if (*sched_type == 'R') {
+      sched_label = "RR";
+      print_quantum = true;
+    }
+    else if (*sched_type == 'S'){
+      sched_label = "SJF";
+    }
+    else{
+      sched_label = "PRIO";
+      print_quantum = true;
+    }
+    if(print_quantum){
+      printf("%s %i\n", sched_label.c_str(), quantum);
+    }
+    else{
+      printf("%s\n", sched_label.c_str());
+    }
     for(std::vector<Process *>::iterator it = done_list.begin(); it != done_list.end(); ++it) {
       int AT = (*it) -> get_arrival_time();
       int TC = (*it) -> get_total_time();
@@ -346,28 +473,84 @@ public:
       int PRIO = (*it) -> get_priority();
       int FT = (*it) -> get_finishing_time();
       int TT = FT - AT;
+      turnaround_count += TT;
       int IT = (*it) -> get_time_blocked();
       int CW = (*it) -> get_cpu_waiting();
+      cpu_waiting_count += CW;
       int pid = (*it) -> get_pid();
 
-      printf("\n %d %d %d %d %d %d | %d  %d  %d %d ",  pid, AT, TC,CB,IO,PRIO,FT,TT,IT,CW);
+      printf("%04d: %4d %4d %4d %4d %1d | %5d %5d %5d %5d\n",  pid, AT, TC,CB,IO,PRIO,FT,TT,IT,CW);
     }
-    int CPU_UTIL = TOTAL_CPU_TIME ;
-    int IO_UTIL = TOTAL_IO_TIME;
-    printf("\n %d %d %d", CURRENT_TIME, CPU_UTIL, IO_UTIL);
+
+    double CPU_UTIL = ((double)TOTAL_CPU_TIME / (double)CURRENT_TIME) * 100.0;
+    double IO_UTIL = ((double)TOTAL_IO_TIME / (double)CURRENT_TIME) * 100.0;
+
+    int n_proc = done_list.size();
+
+    double average_turnaround = (double)turnaround_count / (double)n_proc;
+    double average_waiting = (double)cpu_waiting_count / (double) n_proc;
+    double throughput = (n_proc / (double)CURRENT_TIME) * 100;
+
+    
+    printf("SUM: %d %.2lf %.2lf %.2lf %.2lf %.3lf\n", 
+	   CURRENT_TIME, CPU_UTIL, IO_UTIL, average_turnaround, average_waiting, throughput);
   }
 
 //END CLASS   
 };
 
-/************************************************/
-// The main function definition
+int main(int argc, char ** argv){
+  int vflag = 0;
+  char* path1 = NULL;
+  char* path2 = NULL;
+  std::string sched;
+  int quantum = 1000000;
+  int c;
+  int index;
+  opterr = 0;
 
-/************************************************/
+  
 
-int main(void){
-  Simulation sim("/Users/Vishakh/devel/os-labs/lab2/assignment/input2", 
-		 "/Users/Vishakh/devel/os-labs/lab2/assignment/rfile");
+  while ((c = getopt (argc, argv, "vs:")) != -1)
+    switch (c)
+      {
+      case 'v':
+        vflag = 1;
+        break;
+      case 's':
+        sched = std::string(optarg);
+        break;
+      case '?':
+        if (optopt == 's')
+          fprintf (stderr, "Option -%d requires an argument.\n", optopt);
+        else if (isprint (optopt))
+          fprintf (stderr, "Unknown option `-%c'.\n", optopt);
+        else
+          fprintf (stderr,
+                   "Unknown option character `\\x%x'.\n",
+                   optopt);
+        return 1;
+      default:
+        abort ();
+      }
+  
+// printf ("aflag = %d, sched = %s\n",
+ //       vflag, sched.c_str());
+  
+  path1 = argv[optind];
+  path2 = argv[optind+1];
+
+  //printf("%s %s", path1, path2);
+
+
+  char* sched_type = &sched[0];
+
+  if(sched.length() > 1){
+    quantum = std::stoi(sched.substr(1, sched.length()));
+  }
+  
+
+  Simulation sim(path1, path2, sched_type, quantum, vflag);
   sim.setup_simulation();
   sim.run_simulation();
   sim.print_simulation_details();

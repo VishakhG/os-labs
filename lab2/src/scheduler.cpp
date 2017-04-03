@@ -36,6 +36,7 @@ void Process::set_time_prev_state(int TPS){
 
 void Process::set_priority(int P){
   priority = P;
+  dynamic_priority = P - 1;
 }
 
 int Process::get_time_prev_state(){
@@ -100,28 +101,28 @@ int Process::get_priority(){
 // Set one after another depending on what hasn't been set
 void Process::set_incrementally(int val){
   if (arrival_time == -1){
-    printf("\nat%d",val);
     arrival_time = val;
     last_event_time = val;
   }
   else if (total_time == -1){
-    printf("\ntt%d",val);
     total_time = val;
   }
 
   else if (cpu_burst == -1){
-    printf("\ncb%d",val);
     cpu_burst = val;
   }
 
   else if (io_burst == -1){
-    printf("\nio%d",val);
     io_burst = val;
   }
 }
 
-bool Scheduler::not_empty(){
-  return ! runqueue.empty();
+bool Scheduler::empty(){
+  return runqueue.empty() && expiredqueue.empty();
+}
+
+int Scheduler::get_quantum(){
+  return quantum;
 }
 
 /*
@@ -138,9 +139,153 @@ Process * FIFO::get_process(){
   return proc_i;
 }
 
-int  FIFO::get_quantum(){
-  return quantum;
+
+void LCFS::add_process(Process * proc){
+  //Add at end
+  runqueue.push_back(proc);
 }
+
+
+Process * LCFS::get_process(){
+  //Get from end too
+  Process * proc_i = runqueue.back();
+  runqueue.pop_back();
+  return proc_i;
+}
+
+
+Process * PRIO::get_process(){
+  if(runqueue.empty()){
+      runqueue = expiredqueue;
+      expiredqueue.clear();
+    }
+
+  Process * proc_i = runqueue.back();
+  runqueue.pop_back();
+  return proc_i;
+}
+
+
+bool PRIO::goes_after(Process * p1, Process * p2){
+  int prio1 = p1 -> dynamic_priority;
+  int prio2 = p2 -> dynamic_priority;
+
+  if (prio1 > prio2){
+    return true;
+  }
+
+  else if (prio1 < prio2){
+    return false;
+  }
+  else{
+    return false;
+  }
+} 
+
+
+
+void PRIO:: add_process(Process * proc){
+  if(proc -> dynamic_reset){
+    proc -> dynamic_reset = false;
+    add_expired(proc);
+
+  }
+  else{
+    add_active(proc);
+  }
+
+}
+
+void PRIO::add_active(Process * proc){
   
+  std::vector<Process *>:: iterator position = runqueue.end();
+
+  if(runqueue.empty()){
+    runqueue.push_back(proc);
+  }
+
+  else{
+      
+    for(std::vector<Process *>::iterator it = runqueue.begin(); it != runqueue.end(); ++it) {
+      if (!goes_after(proc, *it)){
+	position = it;
+	break;
+      }
+    }
+    
+    runqueue.insert(position, proc);
+  
+  }
+}
 
 
+void PRIO::add_expired(Process * proc){
+  std::vector<Process *>:: iterator position = expiredqueue.end();
+
+  if(expiredqueue.empty()){
+    expiredqueue.push_back(proc);
+  }
+
+  else{
+      
+    for(std::vector<Process *>::iterator it = expiredqueue.begin(); it != expiredqueue.end(); ++it) {
+      if (!goes_after(proc, *it)){
+	position = it;
+	break;
+      }
+    }
+    
+    expiredqueue.insert(position, proc);
+  
+  }
+}
+
+
+void SJF::add_process(Process *proc){
+
+  std::vector<Process *>:: iterator position = runqueue.end();
+
+  if(runqueue.empty()){
+    runqueue.push_back(proc);
+  }
+
+  else{
+      
+    for(std::vector<Process *>::iterator it = runqueue.begin(); it != runqueue.end(); ++it) {
+      if (!goes_after(proc, *it)){
+	position = it;
+	break;
+      }
+    }
+    
+    runqueue.insert(position, proc);
+  
+  }
+
+
+}
+
+
+bool SJF::goes_after(Process * p1, Process * p2){
+  int remaining1 = p1 -> get_total_time() - p1 -> get_time_running();
+  int remaining2 = p2 -> get_total_time() - p2 -> get_time_running();
+
+  if (remaining2 > remaining1){
+    return true;
+  }
+
+  else if (remaining2 < remaining1){
+    return false;
+  }
+
+  else{
+    return false;
+  }
+} 
+
+Process * SJF::get_process(){
+  Process * proc_i = runqueue.back();
+  runqueue.pop_back();
+  return proc_i;
+  
+}

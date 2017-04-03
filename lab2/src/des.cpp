@@ -91,6 +91,28 @@ bool DES::goes_after(Event * e1, Event * e2){
   int ts_1 = e1 -> get_time_stamp();
   int ts_2 = e2 -> get_time_stamp();
 
+  int pid1 = e1->get_process() -> get_pid();
+  int pid2 = e2->get_process() -> get_pid();
+  
+  if (pid1 == pid2){
+      int trans1 = e1 -> get_transition();
+      int trans2 = e2 -> get_transition();
+
+      if(e1 -> get_process() ->  get_total_time() - e1 -> get_process()-> get_time_running()  == 0 )
+	return true;
+      else if (e2 -> get_process() -> get_total_time() - e1 ->get_process()-> get_time_running()  == 0 )
+	return false;
+      else if(trans1 ==  3)
+	return true;
+      else if(trans2 ==  3)
+	return false;
+      else if (trans1 == 4)
+	return true;
+      else
+	return false;
+      
+    }
+
   //Obviously check if the timestamp is less
   if (ts_1 < ts_2){
     return true;
