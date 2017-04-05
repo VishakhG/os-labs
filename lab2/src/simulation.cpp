@@ -14,12 +14,21 @@
 #include <getopt.h>
 #include <string.h>
 
-/************************************************/
+
 /*
-Some utilites that might come 
-in handy while running the simulation.
- */
-/************************************************/
+***********************************************
+
+The code for the overal simulation
+
+***********************************************
+
+*/
+
+
+/*
+A class that defines some basic utilities for the simulation
+*/
+
 
 class SimUtils{
 private:
@@ -40,7 +49,6 @@ public:
     }
 
     else{
-
       //Whole file
       while(fgets(tokenseq, sizeof(tokenseq), file)){
 	char *tok;
@@ -112,7 +120,7 @@ public:
 /************************************************
 The Simulation class. 
 This class has an eventqueue, a scheduler
-and simply gets events, adds events,
+and simply handles transitions,  gets events, adds events, 
 and requests a process from the scheduler.
 ***********************************************/
 
@@ -500,6 +508,8 @@ public:
 //END CLASS   
 };
 
+
+//MAIN
 int main(int argc, char ** argv){
   int vflag = 0;
   char* path1 = NULL;
@@ -534,15 +544,9 @@ int main(int argc, char ** argv){
       default:
         abort ();
       }
-  
-// printf ("aflag = %d, sched = %s\n",
- //       vflag, sched.c_str());
-  
+    
   path1 = argv[optind];
   path2 = argv[optind+1];
-
-  //printf("%s %s", path1, path2);
-
 
   char* sched_type = &sched[0];
 

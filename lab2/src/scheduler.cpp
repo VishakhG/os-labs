@@ -6,104 +6,131 @@
 #include "scheduler.h"
 
 /*
-This is the process class.
-The fundemental unit of the scheduler.
+****************************************  
+Definitions for functions in the Process 
+class.
+****************************************
 */
-
-
 void Process::set_arrival_time(int AT){
   arrival_time = AT;
 }
+
 
 void Process::set_total_time(int TT){
   total_time = TT;
 }
 
+
 void Process::set_finishing_time(int FT){
   finishing_time = FT;
 }
+
+
 void Process::set_cpu_burst(int CB){
   cpu_burst = CB;
 }
+
 
 void Process::add_cpu_waiting(int CPU){
   cpu_waiting += CPU;
 }
 
+
 void Process::set_time_prev_state(int TPS){
   time_in_previous_state = TPS;
 }
+
 
 void Process::set_priority(int P){
   priority = P;
   dynamic_priority = P - 1;
 }
 
+
 int Process::get_time_prev_state(){
   return time_in_previous_state;
 }  
+
 
 void Process::set_io_burst(int IO){
   io_burst = IO;
 }
 
+
 void Process::set_pid(int p){
   pid = p;
 }
-// Getters
 
+
+// Getters
 int Process:: get_finishing_time(){
   return finishing_time;
 }
+
 
 int Process::get_cpu_waiting(){
   return cpu_waiting;
 }
 
+
 int Process::get_arrival_time(){
   return arrival_time;
 }
+
 
 int Process::get_total_time(){
   return total_time;
 }
 
+
 int Process::get_cpu_burst(){
   return cpu_burst;
 }
+
 
 int Process::get_io_burst(){
   return io_burst;
 }
 
+
 void Process::add_time_running(int r){
   time_running += r;
 }
+
 
 void Process::add_time_blocked(int b){
   time_blocked += b;
 }
 
+
 int Process::get_time_blocked(){
   return time_blocked;
 }
 
+
 int Process::get_pid(){
   return pid;
 }
+
+
 int Process::get_time_running(){
   return time_running;
 }
 
+
 int Process::get_priority(){
   return priority;
 }
+
+
 // Set one after another depending on what hasn't been set
 void Process::set_incrementally(int val){
+
   if (arrival_time == -1){
     arrival_time = val;
     last_event_time = val;
   }
+
   else if (total_time == -1){
     total_time = val;
   }
@@ -117,21 +144,27 @@ void Process::set_incrementally(int val){
   }
 }
 
+
 bool Scheduler::empty(){
   return runqueue.empty() && expiredqueue.empty();
 }
+
 
 int Scheduler::get_quantum(){
   return quantum;
 }
 
+
 /*
-The FIFO scheduler
+Definitions for the FIFO CLASS
 */
+
+
 void FIFO::add_process(Process * proc){
   runqueue.insert(runqueue.begin(), proc);
 }
   
+
 Process * FIFO::get_process(){
   //Just pop from the back
   Process * proc_i = runqueue.back();
@@ -145,7 +178,7 @@ void LCFS::add_process(Process * proc){
   runqueue.push_back(proc);
 }
 
-
+//Definitions for the LCFS class
 Process * LCFS::get_process(){
   //Get from end too
   Process * proc_i = runqueue.back();
@@ -153,7 +186,7 @@ Process * LCFS::get_process(){
   return proc_i;
 }
 
-
+//Definitions for the PRIO class
 Process * PRIO::get_process(){
   if(runqueue.empty()){
       runqueue = expiredqueue;
@@ -240,7 +273,7 @@ void PRIO::add_expired(Process * proc){
   }
 }
 
-
+//Definitions for the SJF class
 void SJF::add_process(Process *proc){
 
   std::vector<Process *>:: iterator position = runqueue.end();

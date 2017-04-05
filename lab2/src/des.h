@@ -3,7 +3,9 @@
 
 /*
 The event, the fundemental unit of the discrete event simulation.
- */
+Each event has a process associated to it and various other
+data members.
+*/
 
 
 class Event{
@@ -15,8 +17,7 @@ class Event{
   //Process associated with an event
   Process * e_proc;
 
-
- public:
+public:
   //Setters
   void set_state(int s);
   void set_time_stamp(int ts);
@@ -30,15 +31,24 @@ class Event{
   int get_previous_state();
   int  get_time_stamp();
   Process * get_process();
+
 };
 #endif
+
+/*
+***********************************************  
+The DES class is a wrapper around the 
+vector that holds the events. It has some other 
+functionality as well.
+***********************************************
+*/
+
 
 class DES{
 private:
   std::vector<Event*> e_queue;
 
-  
-  public:
+public:
   Event * get_event();
   Event * peek_event();
   void insert_event(Event * e);

@@ -6,6 +6,12 @@
 #include "scheduler.h"
 #include "des.h"
 
+/*
+*************************************************  
+The definitions for functions in the Event class.
+*************************************************
+*/
+
 void Event::set_state(int s){
   state = s;
 }
@@ -52,8 +58,8 @@ Event *  DES::get_event(){
 }
 
 
+//Insert in the right order
 void DES::insert_event(Event * e){
-
   std::vector<Event *>:: iterator position = e_queue.end();
 
   if(e_queue.empty()){
@@ -68,14 +74,10 @@ void DES::insert_event(Event * e){
 	break;
       }
     }
-    
-   // printf("inserting id %d at %d with ts %d ", e -> get_process() -> get_pid(),(int)( position - e_queue.begin()), e-> get_time_stamp());
-    
     e_queue.insert(position, e);
-    
-
-    }
   }
+}
+
 
 bool DES::not_empty(){
   return !e_queue.empty();
@@ -84,6 +86,7 @@ bool DES::not_empty(){
 Event * DES::peek_event(){
   return e_queue.back();
 }
+
 
 //Compare whether an event(e1) goes after another (e2)
 //Return true if it does, false if it doesn't
@@ -110,17 +113,19 @@ bool DES::goes_after(Event * e1, Event * e2){
 	return true;
       else
 	return false;
-      
-    }
+  }
+
 
   //Obviously check if the timestamp is less
+
   if (ts_1 < ts_2){
     return true;
   }
+
   else if (ts_1 > ts_2){
     return false;
   }
-  
+
   else{
     return false;
   }
