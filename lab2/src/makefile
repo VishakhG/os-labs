@@ -11,4 +11,4 @@ scheduler.o: scheduler.cpp scheduler.h
 	g++ -std=c++11  -c scheduler.cpp
 
 clean:
-	-rm -f *.o -rm -f *.out
+	rm -f *.o rm -f *.out
