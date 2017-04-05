@@ -95,7 +95,7 @@ class LCFS: public Scheduler{
 };
 
 class RR: public FIFO{
-
+  //Same as fifo except preemption
 };
 
 class PRIO: public Scheduler{
