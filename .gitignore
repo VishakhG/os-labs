@@ -13,3 +13,5 @@ rout
 *.o
 *.#*
 *.out
+*.xcodeproj
+lab3/assignment/myoutputs
