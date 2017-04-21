@@ -828,7 +828,7 @@ public:
     
   void run_simulation(){
         
-    while(line_counter < (instruction_list.size() - 1)){
+    while(line_counter <= (instruction_list.size() - 1)){
 
       Instruction instr_i;
       instr_i = instruction_list[line_counter];
