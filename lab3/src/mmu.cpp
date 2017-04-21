@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <deque>
 
 class Instruction{
 public:
@@ -519,7 +520,7 @@ public:
 
 class aging: public Pager{
 protected:
-  std::vector<std::vector<int> *> aging_counters;
+  std::vector<std::deque<int>*> aging_counters;
     
 public:
   Frame * allocate_frame(Frame **frame_old){
@@ -538,18 +539,18 @@ public:
     }
   }
     
-  void update_counter(std::vector<int> * counter, int refval){
-    counter->insert(counter -> begin(), refval);
+  void update_counter(std::deque<int> * counter, int refval){
+    counter->push_front(refval);
     counter -> pop_back();
   }
     
     
 
-  uint64_t vector_to_int(std::vector<int> * counter){
+  uint64_t vector_to_int(std::deque<int> * counter){
     uint64_t out = 0;
     int place = 0;
         
-    for(std::vector<int>::reverse_iterator rit = counter->rbegin(); rit != counter -> rend(); ++rit){
+    for(std::deque<int>::reverse_iterator rit = counter->rbegin(); rit != counter -> rend(); ++rit){
       out += ((std::pow(2, place)) * (*rit));
       place ++;
     }
@@ -567,7 +568,7 @@ class aging_virtual: public aging{
 public:
   aging_virtual(){
     for(int i = 0; i < 64; ++i ){
-      std::vector<int> *temp_i = new std::vector<int>(32);
+      std::deque<int> *temp_i = new std::deque<int>(32);
       for(int i = 0; i < 32; ++i){
 	temp_i -> at(i) = 0;
       }
@@ -578,7 +579,7 @@ public:
   }
     
   void update_all_counters(){
-    for(std::vector<std::vector<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
       int n = (int)(it - aging_counters.begin());
             
       int ref_i = page_table[n].entry.referenced;
@@ -604,7 +605,7 @@ public:
         
 
         
-    for(std::vector<std::vector<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
       uint64_t temp = vector_to_int(*it);
             
       int n = (int)(it - aging_counters.begin());
@@ -633,7 +634,7 @@ class aging_physical: public aging{
 public:
   aging_physical(){
     for(int i = 0; i < NUM_FRAMES; ++i ){
-      std::vector<int> *temp_i = new std::vector<int>(32);
+      std::deque<int> *temp_i = new std::deque<int>(32);
       for(int i = 0; i < 32; ++i){
 	temp_i -> at(i) = 0;
       }
@@ -643,7 +644,7 @@ public:
   }
     
   void update_all_counters(){
-    for(std::vector<std::vector<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
       int n = (int)(it - aging_counters.begin());
       
       int ref_i = page_table[frametable[n] -> page_map].entry.referenced;
@@ -657,7 +658,7 @@ public:
     uint64_t min = vector_to_int(aging_counters[0]);
     int frame_pos = 0; 
         
-    for(std::vector<std::vector<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
       
       uint64_t temp = vector_to_int(*it);
       int n = (int)(it - aging_counters.begin());
