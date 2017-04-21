@@ -525,7 +525,6 @@ protected:
 public:
   Frame * allocate_frame(Frame **frame_old){
     Frame * res = NULL;
-    update_all_counters();
     res = frametable[find_minimum_frame()];
     *frame_old = res;
     clear_pte_refs();
@@ -559,7 +558,6 @@ public:
   }
     
     
-  virtual void update_all_counters() = 0;
   virtual int find_minimum_frame() = 0;
 };
 
@@ -578,23 +576,18 @@ public:
         
   }
     
-  void update_all_counters(){
-    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
-      int n = (int)(it - aging_counters.begin());
-            
-      int ref_i = page_table[n].entry.referenced;
-            
-      //if(page_table[n].entry.present == 1)
-      update_counter(*it, ref_i);
-    }
-        
-  }
 
   int find_minimum_frame(){
     uint64_t min = 0;
     int frame_pos = 0;
-        
+    int start_gap = 0;
+
+
     for (int i=0; i<64; ++i){
+      int ref_i = page_table[i].entry.referenced;
+      update_counter(aging_counters[i], ref_i);
+      start_gap ++;
+      
       if(page_table[i].entry.present == 1){
 	min = vector_to_int(aging_counters[i]);
 	frame_pos = (page_table[i].entry.frame_ref);
@@ -605,11 +598,17 @@ public:
         
 
         
-    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
-      uint64_t temp = vector_to_int(*it);
-            
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin() + start_gap; it != aging_counters.end(); ++it) {
+      
       int n = (int)(it - aging_counters.begin());
+      
+      int ref_i = page_table[n].entry.referenced;
             
+      //if(page_table[n].entry.present == 1)
+      update_counter(*it, ref_i);
+
+      uint64_t temp = vector_to_int(*it);
+      
       if(temp < min){
 	int present_i = page_table[n].entry.present;
                 
@@ -643,26 +642,22 @@ public:
         
   }
     
-  void update_all_counters(){
-    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
-      int n = (int)(it - aging_counters.begin());
-      
-      int ref_i = page_table[frametable[n] -> page_map].entry.referenced;
-
-      update_counter(*it, ref_i);            
-    }
-        
-  }
-
   int find_minimum_frame(){
+    //Update first one
+    int ref_i = page_table[frametable[0] -> page_map].entry.referenced;
+    update_counter(aging_counters[0], ref_i);   
+
     uint64_t min = vector_to_int(aging_counters[0]);
     int frame_pos = 0; 
         
-    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin(); it != aging_counters.end(); ++it) {
+    for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin() + 1; it != aging_counters.end(); ++it) {
+      
+
+      int n = (int)(it - aging_counters.begin());
+      int ref_i = page_table[frametable[n] -> page_map].entry.referenced;
+      update_counter(*it, ref_i);            
       
       uint64_t temp = vector_to_int(*it);
-      int n = (int)(it - aging_counters.begin());
-            
       if(temp < min){
 	min = temp;
 	frame_pos = n;
