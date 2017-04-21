@@ -1,23 +1,35 @@
-//
-//  main.cpp
-//  mmu
-//
-//  Created by Vishakh gopu on 4/15/17.
-//  Copyright © 2017 Vishakh gopu. All rights reserved.
-//
+/*
+  Vishakh Gopu
+  lab-3: Memory Management
+  4-20-17
 
-#include <iostream>
+
+  This file implements a memory manager that takes instructions one 
+  by one that consist of an operation (read || write) and a virtual page adress.
+  If the page is physical memory or there is plenty or room in physical memory
+  then nothing happens/a free frame is assigned. Otherwise we use an interface
+  to a paging algorithm to get a free frame. Several specific algorithms, all
+  implemented as classes implement this interface:
+
+  1.FIFO
+  2.SECOND CHANCE
+  3.AGING
+  4.CLOCK
+  5.RANDOM
+
+  NOTES:
+  - I convert from a binary to decimal number using my own function in AGING,
+  This might be a bit slower than other solutions but I felt it simplified things.
+
+  - Second chance could inherit from FIFO, but there were enough differences that I thought
+  it wasn't worth it.
+*/
+
+
 #include <vector>
-#include <iostream>
 #include <cstdio>
-#include <stdio.h>
 #include <algorithm>
 #include <fstream>
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <getopt.h>
 #include <string.h>
 #include <iostream>
 #include <getopt.h>
@@ -29,11 +41,18 @@
 #include <unistd.h>
 #include <deque>
 
+/*
+********************************************************************************
+A simple class to hold instructions
+********************************************************************************
+*/
+
 class Instruction{
 public:
   int rw = -1;
   int pg = -1;
-    
+
+  //Set the read first then the page
   void set_incrementally(int val){
     if(rw == -1)
       rw = val;
@@ -43,6 +62,12 @@ public:
 };
 
 
+/*
+********************************************************************************
+A page table entry.
+Consists of a bit-field that holds the relevant bits. 
+********************************************************************************
+*/
 
 class PTE {
 public:
@@ -65,10 +90,16 @@ public:
     entry.referenced = 0;
     entry.paged_out = 0;
     entry.frame_ref = 0;
-        
   }
 };
 
+
+/*
+********************************************************************************
+A Frame has an inverse map to the corresponding
+virtual page, and a UUID. 
+********************************************************************************
+*/
 
 class Frame{
 public:
@@ -77,9 +108,10 @@ public:
 };
 
 
-
 /*
-  Some global vars for the simulation
+********************************************************************************
+Global variables and functions that are shared less messily this way.
+********************************************************************************
 */
 
 //PAGE TABLE
@@ -94,9 +126,10 @@ std::vector<Frame*> frametable;
 //INSTRUCTIONS
 std::vector<Instruction> instruction_list;
 
-
+//NUM FRAMES
 int NUM_FRAMES = 32;
 
+//Print the frames
 void print_frame_table(){
   std::vector<Frame*> out(NUM_FRAMES);
   
@@ -111,14 +144,12 @@ void print_frame_table(){
       printf("* ");
     else
       printf("%d ", page_map_i);
-       
-           
   }
-   printf("\n");
+  printf("\n");
 }
 
+//Print the page tables
 void print_page_table(){
-    
   for(std::vector<PTE>::iterator it = page_table.begin(); it != page_table.end(); ++it) {
     int counter = (int)(it - page_table.begin());
         
@@ -137,18 +168,24 @@ void print_page_table(){
       printf("%d:%s%s%s ", counter, referenced.c_str(), modified.c_str(), swapped.c_str());
             
     }
+
     else{
       if(it -> entry.paged_out == 1)
 	printf("# ");
       else
 	printf("* ");
     }
+
   }
   printf("\n");
 };
 
+
 /*
-  Simulation Utilities
+********************************************************************************
+Consolidates misc utilites that are needed for the simulation.
+Read files ect.
+********************************************************************************
 */
 
 class SimUtils{
@@ -211,7 +248,6 @@ public:
 	while(tok != NULL){
 	  instr_i.set_incrementally((int)atoi(tok));
 	  tok = strtok (NULL," \t\n");
-                    
 	}
                 
 	if(!skipped)
@@ -220,31 +256,37 @@ public:
       }
     }
   }
-    
-    
-    
+
   //Return a random burst
   int random_burst(int burst){
     if (RAND_COUNTER > (rand_vals.size()-1))
       RAND_COUNTER = 1;
     return ((rand_vals.at(RAND_COUNTER++) % burst));
   }
-    
-  //END of SimUtils class
 };
 
-
+//We want to keep this global too
 SimUtils utils;
 
 
 /*
-  PAGERS
+********************************************************************************
+The pager interface (abstract class)
+********************************************************************************
 */
 
+//Abstract class that defines our interface
 class Pager{
 public:
   virtual Frame *allocate_frame(Frame **frame_old) = 0;
 };
+
+
+/*
+********************************************************************************
+FIFO pager, returns the frame that was used least recently. 
+********************************************************************************
+*/
 
 class FIFO:public Pager{
 private:
@@ -258,20 +300,26 @@ public:
     }
   }
   
-   Frame* allocate_frame(Frame **frame_old){
-     if(first_request){
-       initialize_queue();
-       first_request = false;
-     }
+  Frame* allocate_frame(Frame **frame_old){
+    if(first_request){
+      initialize_queue();
+      first_request = false;
+    }
 
     Frame *replaced = queue.back();
     queue.pop_back();
     queue.insert(queue.begin(), replaced);
     *frame_old = replaced;
     return replaced;
-        
   }
 };
+
+/*
+********************************************************************************
+The Random pager. 
+Returns a random frame from the frametable
+********************************************************************************
+*/
 
 class Random: public Pager{
 public:
@@ -284,6 +332,15 @@ public:
         
   }
 };
+
+
+/*
+********************************************************************************
+The Second Chance pager.
+Like FIFO but if the page about to be evicted has been referenced recently
+then give it another chance by putting it at the back of the queue again.
+********************************************************************************
+*/
 
 class SecondChance:public Pager{
 private:
@@ -299,9 +356,9 @@ public:
   
   Frame* sub_allocate_frame(){
     if(first_request){
-       initialize_queue();
-       first_request = false;
-     }
+      initialize_queue();
+      first_request = false;
+    }
 
     Frame *replaced = queue.back();
     queue.pop_back();
@@ -331,6 +388,15 @@ public:
     
     
 };
+
+
+/*
+********************************************************************************
+The Not recently used algorith,
+Bins the available frames into categories based on the referenced and 
+modified bits and then picks a frame at random from the lowest precedence class.
+********************************************************************************
+*/
 
 
 class NRU: public Pager{
@@ -371,9 +437,6 @@ public:
 	  it -> entry.referenced = 0;
 	}
       }
-        
-        
-
     }
     
     if(!ref_mod.empty())
@@ -385,8 +448,7 @@ public:
     if (!noref_nomod.empty())
       lowest_cat = 0;
 
-    
-};
+  };
     
   Frame * random_sample(std::vector<int> sample_space){
     Frame * sample = NULL;
@@ -401,20 +463,14 @@ public:
         
     return sample;
   }
-    
-//  void clear_reference_counters(){
-//    for(std::vector<PTE>::iterator it = page_table.begin(); it != page_table.end(); ++it) {
-//      if(it -> entry.present == 1)
-//	it -> entry.referenced = 0;
-//    }
-//  }
-    
+        
   void clear_counters(){
     noref_nomod.clear();
     noref_mod.clear();
     ref_nomod.clear();
     ref_mod.clear();
   }
+
   Frame * allocate_frame(Frame **frame_old){
     CLEAR_REF_COUNTER ++;
     find_frames();
@@ -430,7 +486,6 @@ public:
       break;
     case 3: res = random_sample(ref_mod);
     }
-        
 
     if(CLEAR_REF_COUNTER  == CLOCK_INTERRUPT){
       CLEAR_REF_COUNTER = 0;
@@ -440,8 +495,15 @@ public:
     clear_counters();
     return res;
   }
-    
 };
+
+
+/*
+********************************************************************************
+Clock algorithm - based on virtual pages.
+Moves a hand around the page table and does the same as NRU.
+********************************************************************************
+*/
 
 class clock_virtual: public Pager {
 public:
@@ -476,13 +538,19 @@ public:
       }
     }
         
-    
     *frame_old = res;
+    
     return res;
   }
 };
 
 
+/*
+********************************************************************************
+Clock based on physical frames
+Moves a hand around the frametable and does what NRU does.
+********************************************************************************
+*/
 
 class clock_physical: public Pager{
 public:
@@ -518,6 +586,15 @@ public:
 };
 
 
+/*
+********************************************************************************
+The superclass for aging pagers.
+The aging pager maintains a counter for each page (phys/virtual) and shifts
+it to the right after a page fault. Then it prepends the referenced bit 
+of the corresponding PTE. 
+********************************************************************************
+*/
+
 class aging: public Pager{
 protected:
   std::vector<std::deque<int>*> aging_counters;
@@ -543,8 +620,6 @@ public:
     counter -> pop_back();
   }
     
-    
-
   uint64_t vector_to_int(std::deque<int> * counter){
     uint64_t out = 0;
     int place = 0;
@@ -557,10 +632,15 @@ public:
     return out;
   }
     
-    
   virtual int find_minimum_frame() = 0;
 };
 
+
+/*
+********************************************************************************
+Aging based on the virtual pages.
+********************************************************************************
+*/
 
 class aging_virtual: public aging{
 public:
@@ -573,9 +653,7 @@ public:
 
       aging_counters.push_back(temp_i);
     }
-        
   }
-    
 
   int find_minimum_frame(){
     uint64_t min = 0;
@@ -593,18 +671,12 @@ public:
 	frame_pos = (page_table[i].entry.frame_ref);
 	break;
       }
-                
     }
-        
 
-        
     for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin() + start_gap; it != aging_counters.end(); ++it) {
-      
       int n = (int)(it - aging_counters.begin());
-      
       int ref_i = page_table[n].entry.referenced;
-            
-      //if(page_table[n].entry.present == 1)
+
       update_counter(*it, ref_i);
 
       uint64_t temp = vector_to_int(*it);
@@ -613,21 +685,21 @@ public:
 	int present_i = page_table[n].entry.present;
                 
 	if(present_i == 1){
-                    
 	  min = temp;
 	  frame_pos = (page_table[n].entry.frame_ref);
-                    
 	}
-                
       }
     }
-
     return  frame_pos;
   }
-    
 };
 
 
+/*
+********************************************************************************
+Aging based on the physical frames
+********************************************************************************
+*/
 
 class aging_physical: public aging{
 public:
@@ -651,13 +723,13 @@ public:
     int frame_pos = 0; 
         
     for(std::vector<std::deque<int> *>::iterator it = aging_counters.begin() + 1; it != aging_counters.end(); ++it) {
-      
-
       int n = (int)(it - aging_counters.begin());
       int ref_i = page_table[frametable[n] -> page_map].entry.referenced;
+
       update_counter(*it, ref_i);            
       
       uint64_t temp = vector_to_int(*it);
+
       if(temp < min){
 	min = temp;
 	frame_pos = n;
@@ -672,11 +744,13 @@ public:
 };
 
 /*
-  SIMULATION
-*/
+********************************************************************************
+A small class holding all the simulation statistics
+********************************************************************************
+*/ 
 
 class Sim_stats{
-  public:
+public:
   uint64_t UNMAP = 0;
   uint64_t MAP = 0;
   uint64_t PAGEIN = 0;
@@ -686,8 +760,14 @@ class Sim_stats{
 };
 
 /*
-  Some options that will be needed to determine what gets printed
-*/
+
+ */
+
+/*
+********************************************************************************
+Some global flags that need to be shared
+********************************************************************************
+*/ 
 
 bool O_opt = false;
 bool F_opt = false ;
@@ -697,6 +777,16 @@ bool f_opt = false;
 bool a_opt = false;
 bool p_opt = false;
 std::string algo_spec = "";
+
+
+/*
+********************************************************************************
+The simulation itself.
+We take instructions and move the simulation forward by checking to 
+see whether the virtual page is present and if not requesting a frame from a 
+pager.
+********************************************************************************
+*/ 
 
 class Simulation{
 private:
@@ -716,6 +806,7 @@ public:
 	   stats.TOTALCOST
 	   );    
   };
+
   void print_info(int code, int arg1, int arg2){
     if(O_opt){
       switch (code) {
@@ -743,7 +834,6 @@ public:
 	//ZERO
       case 5:
 	printf("%d: ZERO %d \n",line_counter, arg2);
-
 	break;
       default:
 	break;
@@ -772,8 +862,7 @@ public:
   }
  
   Simulation(char const *i_path, char const *rand_path){
-    //Initialize free frame list
-    
+
     initialize_algo();
     
     utils.read_instructions(i_path);
@@ -803,7 +892,6 @@ public:
         
   };
     
-    
   Frame *get_frame(Frame **old_frame, int pg_num){
     Frame * res ;
     if(!free_list.empty()){
@@ -811,17 +899,14 @@ public:
       res = allocate_from_free(pg_num);
       *old_frame = NULL;
     }
-        
+
     else{
-      //TODO make sure oldframe is changed;
       res = algo -> allocate_frame(old_frame);
     }
-        
+
     return res;
   };
-    
 
-    
   void run_simulation(){
         
     while(line_counter <= (instruction_list.size() - 1)){
@@ -840,7 +925,6 @@ public:
             
             
       if(! page_table[pg_i].isPresent()){
-                
 	Frame * old_frame;
 	Frame * new_frame;
                 
@@ -857,12 +941,12 @@ public:
 	  old_pte -> entry.present = 0;
 	  old_pte ->entry.frame_ref = 33;
                     
-	  //printf("%d: UNMAP %d %d \n", line_counter, old_map, frame_id);
+	  //UNMAP
 	  print_info(1, old_map, frame_id);
 	  stats.UNMAP ++;
 	  stats.TOTALCOST += 400;
 	  if(old_pte -> entry.modified == 1){
-	    //printf("%d: OUT %d %d \n", line_counter, old_map, frame_id);
+	    //PAGEOUT
 	    stats.PAGEOUT ++;
 	    stats.TOTALCOST += 3000;
 
@@ -875,8 +959,7 @@ public:
                    
                     
 	}
-                
-                
+
 	//If it was paged out before then page in
 	if(new_pte -> entry.paged_out == 1){
 	  //printf("%d: IN %d %d \n", line_counter, pg_i, frame_id);
@@ -884,6 +967,7 @@ public:
 	  stats.TOTALCOST += 3000;
 	  print_info(3, pg_i, frame_id);
 	}
+
 	//Else just zero
 	else{
 	  //printf("zero \n");
@@ -892,7 +976,7 @@ public:
 	  print_info(5, -1, frame_id);
 	}
                 
-	//printf("%d: MAP %d %d \n",line_counter, pg_i, frame_id);
+	//MAP
 	stats.MAP ++;
 	stats.TOTALCOST += 400;
 	print_info(4, pg_i, frame_id);
@@ -906,21 +990,24 @@ public:
       //Definitly referenced
       new_pte -> entry.referenced = 1;
 
-            
       //If its a write then its modified
-            
       if(rw_i == 1)
 	new_pte -> entry.modified = 1;
+
       stats.TOTALCOST += 1;      
       line_counter ++;
     }
   }
-  //END of Simulation class
 };
 
+
 /*
-  MAIN
-*/
+********************************************************************************
+Main function.
+We handle command line options in any order and print 
+the summaries if needed.
+********************************************************************************
+*/ 
 
 int main(int argc, char ** argv) {
     
@@ -989,7 +1076,5 @@ int main(int argc, char ** argv) {
   if(S_opt){
     sim.print_stats();
   }
-  
-  
   return 0;
 }
