@@ -28,6 +28,6 @@ echo "OUTDIR=${OUTDIR}  MMU=${MMU}"
 ./runit_one.sh    ${OUTDIR} in10K3  32 apfOPFS  ${MMU}
 
 ./runit_one.sh    ${OUTDIR} in10K3  32    OPFS  ${MMU}
-#./runit_one.sh    ${OUTDIR} in1M2   32     PFS  ${MMU}
+./runit_one.sh    ${OUTDIR} in1M2   32     PFS  ${MMU}
 
 
