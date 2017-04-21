@@ -1,4 +1,4 @@
-mmu:mmu.cpp
-	g++ -std=c++11  mmu.cpp -o mmu.o
+vmm:vmm.cpp
+	g++ -std=c++11  vmm.cpp -o vmm.o
 clean:
-	rm -f mmu.o
+	rm -f vmm.o
