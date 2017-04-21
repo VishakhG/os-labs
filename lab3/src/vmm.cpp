@@ -4,7 +4,7 @@
   4-20-17
 
 
-  This file implements a memory manager that takes instructions one 
+  This file implements a virtual memory manager that takes instructions one 
   by one that consist of an operation (read || write) and a virtual page adress.
   If the page is physical memory or there is plenty or room in physical memory
   then nothing happens/a free frame is assigned. Otherwise we use an interface
