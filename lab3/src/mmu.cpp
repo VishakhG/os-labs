@@ -214,7 +214,7 @@ public:
 	}
                 
 	if(!skipped)
-	  instruction_list.insert(instruction_list.begin(), instr_i);
+	  instruction_list.push_back(instr_i);
 	skipped = false;
       }
     }
@@ -224,7 +224,7 @@ public:
     
   //Return a random burst
   int random_burst(int burst){
-    if (RAND_COUNTER > rand_vals.size())
+    if (RAND_COUNTER > (rand_vals.size()-1))
       RAND_COUNTER = 1;
     return ((rand_vals.at(RAND_COUNTER++) % burst));
   }
@@ -828,11 +828,10 @@ public:
     
   void run_simulation(){
         
-    while(!instruction_list.empty()){
-            
+    while(line_counter < (instruction_list.size() - 1)){
+
       Instruction instr_i;
-      instr_i = instruction_list.back();
-      instruction_list.pop_back();
+      instr_i = instruction_list[line_counter];
             
       int rw_i = instr_i.rw;
       int pg_i = instr_i.pg;
