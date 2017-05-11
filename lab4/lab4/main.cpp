@@ -21,7 +21,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <deque>
-#include <AssertMacros.h>
 #include <iostream>
 #include <getopt.h>
 
