@@ -356,7 +356,7 @@ public:
 
 /*
 ***************************************************************************
-// General class for scanning algorithms, cscan and scan both extend
+// General class for scanning algorithms, cscan and scan both extend.
 //Fscan became too complex and I ran out of time so its stand alone
 ***************************************************************************
 */
@@ -637,7 +637,7 @@ public:
 	break;
       }
     }
-        
+    //Kind of hacky I know
     std::vector<Instruction>::iterator it_forward =  --(res_it.base());
 
     CURRENT_INSTRUCTION = (queue.at(it_forward - queue.begin()));
